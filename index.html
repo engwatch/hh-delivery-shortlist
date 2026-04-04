@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Manager — Шортлист</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; color: #2d3436; line-height: 1.6; }
+
+/* Lock screen */
+#lock-screen { position: fixed; inset: 0; background: #f5f6fa; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+#lock-box { background: #fff; border: 1px solid #e0e0e0; border-radius: 20px; padding: 48px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+#lock-box h2 { color: #2d3436; margin-bottom: 8px; font-size: 1.5rem; }
+#lock-box p { color: #636e72; margin-bottom: 24px; font-size: 0.9rem; }
+#lock-box input { width: 100%; padding: 14px 18px; border: 2px solid #dfe6e9; background: #f8f9fa; color: #2d3436; border-radius: 12px; font-size: 1.1rem; text-align: center; letter-spacing: 8px; outline: none; margin-bottom: 16px; }
+#lock-box input:focus { border-color: #0984e3; }
+#lock-box button { width: 100%; padding: 14px; background: #0984e3; color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+#lock-box button:hover { background: #0770c2; }
+#lock-box .error { color: #d63031; margin-top: 12px; font-size: 0.85rem; display: none; }
+#content { display: none; }
+
+/* Header */
+.header { background: linear-gradient(135deg, #0984e3, #00b894); color: #fff; padding: 48px 24px; text-align: center; }
+.header h1 { font-size: 2rem; margin-bottom: 8px; }
+.header .sub { color: rgba(255,255,255,0.85); font-size: 1rem; margin-bottom: 32px; }
+.stats { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+.stat { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 14px; padding: 16px 28px; min-width: 140px; }
+.stat .num { font-size: 2rem; font-weight: 900; }
+.stat .label { font-size: 0.8rem; color: rgba(255,255,255,0.75); margin-top: 4px; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+.mbox { background: #fff; border-radius: 16px; padding: 28px; margin-bottom: 28px; box-shadow: 0 2px 16px rgba(0,0,0,.06); }
+.mbox h2 { font-size: 1.3rem; margin-bottom: 16px; }
+.mgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.mitem { background: #f8f9ff; border-radius: 12px; padding: 16px; border-left: 4px solid #0984e3; }
+.mitem h3 { font-size: 0.95rem; margin-bottom: 6px; color: #0984e3; }
+.mitem p { font-size: 0.85rem; color: #636e72; }
+
+.key-filter { background: linear-gradient(135deg, #fff9db, #fff3cd); border-radius: 14px; padding: 20px 24px; border-left: 5px solid #f39c12; margin-bottom: 28px; }
+.key-filter h3 { color: #d68910; margin-bottom: 8px; }
+.key-filter p { font-size: 0.95rem; }
+
+.tier { margin-bottom: 32px; }
+.th { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.th h2 { font-size: 1.4rem; }
+.tb { padding: 5px 16px; border-radius: 20px; color: #fff; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+.tb-s { background: linear-gradient(135deg, #e17055, #d63031); }
+.tb-a { background: linear-gradient(135deg, #00b894, #00cec9); }
+.tb-b { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+.tb-extra { background: linear-gradient(135deg, #b2bec3, #636e72); }
+
+.card { background: #fff; border-radius: 16px; padding: 28px; position: relative; margin-bottom: 16px; box-shadow: 0 2px 16px rgba(0,0,0,.06); }
+.card-s { border-left: 6px solid #d63031; }
+.card-a { border-left: 6px solid #00b894; }
+.card-b { border-left: 6px solid #74b9ff; }
+.card-extra { border-left: 6px solid #b2bec3; }
+
+.rating { position: absolute; top: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.15rem; }
+.rating-s { background: linear-gradient(135deg, #d63031, #e17055); }
+.rating-a { background: linear-gradient(135deg, #00b894, #00cec9); }
+.rating-b { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+.rating-extra { background: linear-gradient(135deg, #b2bec3, #636e72); }
+
+.ct { font-size: 1.2rem; font-weight: 800; padding-right: 70px; margin-bottom: 6px; }
+.cm { color: #636e72; font-size: 0.85rem; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sp { padding: 3px 12px; border-radius: 14px; font-size: 0.75rem; font-weight: 600; }
+.sp-active { background: #00b894; color: #fff; }
+.sp-urgent { background: #d63031; color: #fff; animation: pulse 1.5s infinite; }
+.sp-overqualified { background: #636e72; color: #fff; }
+.sp-warning { background: #e17055; color: #fff; }
+.sp-risk { background: #fdcb6e; color: #2d3436; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+.new-badge { background: #6c5ce7; color: #fff; padding: 2px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; margin-left: 8px; }
+
+.cr { margin: 16px 0; }
+.crr { display: flex; gap: 10px; margin-bottom: 7px; }
+.crr-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+.dot-aggregator { background: #6c5ce7; }
+.dot-insurance { background: #e17055; }
+.dot-fintech { background: #00b894; }
+.dot-other { background: #b2bec3; }
+.crr-content { flex: 1; }
+.crr-content strong { font-size: 0.95rem; }
+.cl { padding: 1px 7px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; color: #fff; }
+.cl-aggregator { background: #6c5ce7; }
+.cl-insurance { background: #e17055; }
+.cl-fintech { background: #00b894; }
+.cl-bank { background: #fdcb6e; color: #2d3436; }
+.crr-details { color: #636e72; font-size: 0.85rem; margin-top: 2px; }
+
+.block-warn { background: #fff0e8; border: 1px solid #e17055; border-radius: 12px; padding: 18px 20px; margin: 12px 0; }
+.block-warn h4 { color: #e17055; margin-bottom: 8px; font-size: 0.9rem; }
+.block-warn p { font-size: 0.88rem; color: #636e72; }
+
+.block-green { background: #e8f8f0; border: 1px solid #b2f2d9; border-radius: 12px; padding: 18px 20px; margin: 12px 0; }
+.block-green h4 { color: #059669; margin-bottom: 8px; font-size: 0.9rem; }
+.block-green li { margin-bottom: 4px; font-size: 0.88rem; }
+.block-green li span { color: #059669; font-weight: 600; }
+
+.block-yellow { background: #fefce8; border: 1px solid #fde68a; border-radius: 12px; padding: 18px 20px; margin: 12px 0; }
+.block-yellow h4 { color: #d97706; margin-bottom: 8px; font-size: 0.9rem; }
+.block-yellow li { margin-bottom: 4px; font-size: 0.88rem; }
+.block-yellow li span { color: #d97706; font-weight: 600; }
+
+.verdict { background: #f0f3ff; border-radius: 10px; padding: 14px 18px; margin: 12px 0; font-size: 0.9rem; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.tag { padding: 3px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 600; }
+.tag-green { background: #e8f8f0; color: #059669; }
+.tag-blue { background: #e8f0ff; color: #0984e3; }
+.tag-purple { background: #f0e8ff; color: #6c5ce7; }
+.tag-orange { background: #fff0e8; color: #e17055; }
+.tag-red { background: #ffe8e8; color: #d63031; }
+.tag-gray { background: #f0f0f0; color: #636e72; }
+
+.dual-rating { display: flex; gap: 12px; margin: 12px 0; }
+.dr-item { background: #f8f9ff; border-radius: 10px; padding: 10px 16px; flex: 1; text-align: center; }
+.dr-item .dr-label { font-size: 0.75rem; color: #636e72; font-weight: 600; }
+.dr-item .dr-val { font-size: 1.5rem; font-weight: 900; }
+.dr-p { color: #6c5ce7; }
+.dr-d { color: #0984e3; }
+
+.summary-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.summary-table th { background: #f8f9ff; padding: 10px 12px; text-align: left; font-size: 0.8rem; color: #636e72; border-bottom: 2px solid #dfe6e9; }
+.summary-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.88rem; }
+.summary-table tr:hover { background: #f8f9ff; }
+
+.resume-link { display: inline-block; margin: 10px 0; padding: 8px 18px; font-size: 0.85rem; color: #fff; background: #0984e3; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s; }
+.resume-link:hover { background: #0770c2; }
+.resume-link-gray { background: #b2bec3; }
+.resume-link-gray:hover { background: #636e72; }
+.no-link { display: inline-block; margin: 10px 0; padding: 8px 18px; font-size: 0.85rem; color: #b2bec3; background: #f0f0f0; border-radius: 8px; font-weight: 600; }
+.footer { text-align: center; padding: 32px 16px; color: #b2bec3; font-size: 0.8rem; }
+
+/* Navigation */
+.nav { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #dfe6e9; padding: 10px 16px; overflow-x: auto; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.nav a { display: inline-block; padding: 6px 14px; margin: 0 3px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; text-decoration: none; color: #636e72; background: #f5f6fa; transition: all 0.2s; }
+.nav a:hover { background: #0984e3; color: #fff; }
+.nav a.nav-s { border-bottom: 3px solid #d63031; }
+.nav a.nav-a { border-bottom: 3px solid #00b894; }
+.nav a.nav-b { border-bottom: 3px solid #74b9ff; }
+.nav a.nav-saas { border-bottom: 3px solid #6c5ce7; }
+.nav a.nav-oq { border-bottom: 3px solid #b2bec3; }
+.back-top { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; border-radius: 50%; background: #0984e3; color: #fff; border: none; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.15); display: none; z-index: 99; transition: opacity 0.3s; }
+.back-top:hover { background: #0770c2; }
+
+@media (max-width: 600px) {
+  .header h1 { font-size: 1.4rem; }
+  .stats { gap: 12px; }
+  .stat { padding: 12px 16px; min-width: 100px; }
+  .stat .num { font-size: 1.4rem; }
+  .card { padding: 20px; }
+  .ct { font-size: 1rem; }
+  .rating { width: 44px; height: 44px; font-size: 1rem; top: 16px; right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Lock Screen -->
+<div id="lock-screen">
+  <div id="lock-box">
+    <h2>Delivery Manager</h2>
+    <p>Шортлист кандидатов. Введите пароль.</p>
+    <input type="password" id="pwd" maxlength="10" placeholder="****" autofocus>
+    <button id="unlock-btn">Открыть</button>
+    <div class="error" id="err">Неверный пароль</div>
+  </div>
+</div>
+
+<!-- Content -->
+<div id="content">
+
+<div class="header">
+  <h1>Хантинг: Delivery Manager</h1>
+  <div class="sub">Партнёрский менеджер (60%) + проджект (40%) — страховой рынок / финансовые агрегаторы<br>Уровень: до продакта. ЗП 200-300К. Ценим end-to-end опыт, не узкий участок в крупной СК</div>
+  <div class="stats">
+    <div class="stat"><div class="num">27</div><div class="label">Кандидатов</div></div>
+    <div class="stat"><div class="num" style="color:#ffe0d0">2</div><div class="label">Tier S (страх.)</div></div>
+    <div class="stat"><div class="num" style="color:#d4fce8">15</div><div class="label">Tier A</div></div>
+    <div class="stat"><div class="num">15</div><div class="label">Раундов</div></div>
+    <div class="stat"><div class="num">180</div><div class="label">Запросов hh.ru</div></div>
+  </div>
+</div>
+
+<div class="nav" id="nav">
+  <a href="#tier-s" class="nav-s">S — Лучшие</a>
+  <a href="#tier-a" class="nav-a">A — Страхование</a>
+  <a href="#tier-b" class="nav-b">B+ — Резерв</a>
+  <a href="#tier-saas" class="nav-saas">SaaS / B2B</a>
+  <a href="#tier-oq" class="nav-oq">OQ / Не delivery</a>
+  <a href="#summary" class="nav-a">Сводная</a>
+  <a href="#next-steps" class="nav-b">Следующие шаги</a>
+</div>
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<div class="container">
+
+<!-- Methodology -->
+<div class="mbox">
+  <h2>Методология поиска</h2>
+  <div class="mgrid">
+    <div class="mitem">
+      <h3>1. Агрегаторы (R1)</h3>
+      <p>Сравни.ру, Банки.ру, Выберу.ру, Финуслуги, Cherehapa, Полис.ру. 9 запросов.</p>
+    </div>
+    <div class="mitem">
+      <h3>2. По компаниям (R3)</h3>
+      <p>Манго, Ренессанс, InsurTech + ролевые запросы. 6 запросов.</p>
+    </div>
+    <div class="mitem">
+      <h3>3. ML-матчинг (R4)</h3>
+      <p>"Похожие резюме" hh.ru для S-tier кандидатов.</p>
+    </div>
+    <div class="mitem">
+      <h3>4. Комбо-поиск (R5)</h3>
+      <p>ВСК, Ингосстрах, АльфаСтрах, РЕСО, Согласие + InsurTech. Фокус на КАСКО/ОСАГО.</p>
+    </div>
+    <div class="mitem">
+      <h3>5. Внешние (R6-R8)</h3>
+      <p>WebSearch, конференции, vc.ru, LinkedIn, Telegram.</p>
+    </div>
+    <div class="mitem">
+      <h3>6. SaaS/B2B (R11-R15)</h3>
+      <p>Umnico, Roistat, eLama, Mindbox, АТОЛ, Контур, CloudPayments, admitad + ролевые запросы. 75 запросов.</p>
+    </div>
+    <div class="mitem">
+      <h3>7. Двойная оценка</h3>
+      <p>П (партнёрский) + Д (delivery). Бонус за end-to-end и знание B2B-интеграций.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Key Filter -->
+<div class="key-filter">
+  <h3>Ключевые фильтры</h3>
+  <p><strong>1. "Сколько партнёров вы запустили ЛИЧНО end-to-end? Назовите 3."</strong></p>
+  <p style="margin-top:8px"><strong>2. Уровень:</strong> до продакта. Директор/Head of = overqualified.</p>
+  <p style="margin-top:8px"><strong>3. End-to-end:</strong> ценим широкий опыт (агрегаторы, брокеры, стартапы). Узкий участок в крупной СК с регламентами = риск.</p>
+  <p style="margin-top:8px;font-size:0.85rem;color:#636e72">Хороший опыт: Росстрах, УП, Пампаду — end-to-end процесс. Плохой сигнал: 10+ лет на одном участке в крупной СК.</p>
+</div>
+
+<!-- ==================== TIER S ==================== -->
+<div class="tier" id="tier-s">
+  <div class="th">
+    <h2>Tier S — Лучшие кандидаты</h2>
+    <span class="tb tb-s">ПРИОРИТЕТНЫЙ КОНТАКТ</span>
+  </div>
+
+  <!-- R1-1: Сравни.ру — агрегатор, wide scope, delivery 10/10 -->
+  <div class="card card-s">
+    <div class="rating rating-s">9.5</div>
+    <div class="ct">Руковод. идентификации и доставки фин. продуктов — Сравни.ру, Ozon Fintech, Raiffeisenbank <span class="new-badge">R1</span></div>
+    <div class="cm">
+      Ж, 40 лет &bull; Алматы (удалённо?)
+      <span class="sp sp-active">Активно ищет!</span>
+    </div>
+    <a href="https://hh.ru/resume/af0493aa000c85024300115368764848555575" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">9</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">10</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Сравни.ру</strong> — Руковод. идентификации и доставки фин. продуктов <span class="cl cl-aggregator">АГРЕГАТОР</span> <span style="color:#b2bec3">(3.5 года)</span>
+          <div class="crr-details">4 вендора, 2 банка-партнёра, P&L, API, CJM. Воронка <strong>x10</strong>.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-fintech"></div>
+        <div class="crr-content">
+          <strong>Ozon Fintech</strong> — менеджер <span class="cl cl-fintech">ФИНТЕХ</span>
+          <div class="crr-details">Финтех-продукты на маркетплейсе</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-other"></div>
+        <div class="crr-content">
+          <strong>Raiffeisenbank</strong> — 15 лет <span class="cl cl-bank">БАНК</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Сравни.ру 3.5 года</span> — прямой конкурент, агрегатор, широкий end-to-end опыт</li>
+        <li><span>Воронка x10</span> — доказанный рост через партнёрства</li>
+        <li><span>P&L, API, CJM</span> — и бизнес, и техника</li>
+        <li><span>Разные компании</span> — агрегатор + финтех + банк, не засиделась на одном участке</li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Алматы + гражданство</span> — гражданство РФ? Можно ли оформить в штат? Казахстан = сложности с трудоустройством</li>
+        <li><span>40 лет</span> — ожидания по ЗП (может быть выше 300К)</li>
+        <li><span>Стартап vs корпорация</span> — 15 лет в банке. Готова к стартапу?</li>
+        <li><span>Юр. обвязка / ДДС</span> — работала ли с договорами лично?</li>
+      </ul>
+    </div>
+
+    <div class="block-warn">
+      <h4>Риск: Алматы — трудоустройство в штат</h4>
+      <p>Кандидат в Казахстане. Если нет гражданства РФ — оформление в штат может быть невозможно или потребует спонсирования разрешения на работу. Первый вопрос на интервью: гражданство и готовность к оформлению в РФ.</p>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Сильнейший delivery (10/10) + агрегаторный опыт (Сравни.ру). End-to-end. Критический риск: Алматы — возможно нельзя оформить в штат (гражданство?). Уточнить ДО интервью.</div>
+
+    <div class="tags">
+      <span class="tag tag-purple">Сравни.ру</span>
+      <span class="tag tag-green">Ozon Fintech</span>
+      <span class="tag tag-blue">Raiffeisenbank</span>
+      <span class="tag tag-green">Воронка x10</span>
+      <span class="tag tag-green">End-to-end</span>
+      <span class="tag tag-orange">Алматы</span>
+    </div>
+  </div>
+
+  <!-- R3-1: Финуслуги + Росстрах + РТ Страхование — PM-level, end-to-end, ОСАГО -->
+  <div class="card card-s">
+    <div class="rating rating-s">9</div>
+    <div class="ct">Project Manager — Финуслуги (Мосбиржа), Росстрах, РТ Страхование <span class="new-badge">R3</span></div>
+    <div class="cm">
+      М, 31 год &bull; Санкт-Петербург
+    </div>
+    <span class="no-link">Резюме закрыто или удалено (R3)</span>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">6</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">8</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Финуслуги</strong> (Мосбиржа) — Project Manager <span class="cl cl-aggregator">АГРЕГАТОР</span> <span style="color:#b2bec3">(1 год)</span>
+          <div class="crr-details">Запускал страховые продукты (ОСАГО, ИФЛ) на маркетплейсе Мосбиржи. Интеграции со страховыми.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>Росстрах</strong> — Project Manager <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(2 года)</span>
+          <div class="crr-details">PM в страховой компании</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>РТ Страхование</strong> — <span class="cl cl-insurance">СТРАХОВАЯ</span>
+          <div class="crr-details">Страховой бэкграунд</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Финуслуги = прямой конкурент</span> — запускал ОСАГО на маркетплейсе, знает процесс</li>
+        <li><span>End-to-end</span> — 3 разные компании (агрегатор + 2 СК), видел рынок с разных сторон</li>
+        <li><span>PM-level</span> — идеальный уровень для delivery manager, не overqualified</li>
+        <li><span>Росстрах</span> — именно тот опыт что ценит руководство (end-to-end процесс)</li>
+        <li><span>31 год</span> — стартап-возраст, без корпоративных привычек</li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>PM, не bizdev</span> — партнёрские переговоры вёл или только delivery?</li>
+        <li><span>Фин. модель / ДДС</span> — работал ли с экономикой партнёрств?</li>
+        <li><span>СПб</span> — готов к удалённой работе или релокации?</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Идеальный профиль: PM-level, end-to-end опыт (агрегатор + 2 СК), ОСАГО, молодой. Финуслуги — прямой конкурент. Росстрах — именно тот опыт что ценит руководство.</div>
+
+    <div class="tags">
+      <span class="tag tag-purple">Финуслуги</span>
+      <span class="tag tag-orange">Росстрах</span>
+      <span class="tag tag-green">ОСАГО / ИФЛ</span>
+      <span class="tag tag-blue">Delivery 8/10</span>
+      <span class="tag tag-green">End-to-end</span>
+      <span class="tag tag-orange">СПб</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TIER A ==================== -->
+<div class="tier">
+  <div class="th">
+    <h2>Tier A — Сильные кандидаты</h2>
+    <span class="tb tb-a">КОНТАКТ</span>
+  </div>
+
+  <!-- R4-1: РТ Доктис/СберЗдоровье (id anchor for Tier A insurance) -->
+  <a id="tier-a"></a>
+  <!-- R4-1: РТ Доктис/СберЗдоровье — стартапы, end-to-end -->
+  <div class="card card-a">
+    <div class="rating rating-a">7.5</div>
+    <div class="ct">Руковод. направления по работе с партнёрами — РТ Доктис, СберЗдоровье, Roistat <span class="new-badge">R4</span></div>
+    <div class="cm">
+      М, 33 года &bull; Москва
+    </div>
+    <a href="https://hh.ru/resume/2afc0825000fff1a4d001153686e6677443936" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">7</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">7</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-other"></div>
+        <div class="crr-content">
+          <strong>РТ Доктис → СберЗдоровье → Roistat</strong> — Руководитель по работе с партнёрами
+          <div class="crr-details">Запуск партнёрств в MedTech/MarTech. End-to-end: от переговоров до интеграции.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>End-to-end</span> — 3 разные digital-компании, полный цикл партнёрств</li>
+        <li><span>Стартапы</span> — Доктис, Roistat = стартап-культура, без регламентов</li>
+        <li><span>33 года, Москва</span> — идеальный возраст и локация</li>
+        <li><span>Правильный уровень</span> — руководитель направления, не директор</li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Риски</h4>
+      <ul>
+        <li><span>Не страхование</span> — MedTech/MarTech, потребует обучения рынку</li>
+        <li><span>Нет финансовых агрегаторов</span> — не знает Сравни/Банки/Финуслуги</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Правильный уровень + стартап-опыт + end-to-end партнёрства. Минус — не из страхования. Но широкий профиль компенсирует.</div>
+
+    <div class="tags">
+      <span class="tag tag-blue">МedTech</span>
+      <span class="tag tag-green">End-to-end</span>
+      <span class="tag tag-green">Стартапы</span>
+      <span class="tag tag-orange">Нет страхования</span>
+    </div>
+  </div>
+
+  <!-- R1-4: СК ПАРИ — 12 лет одна СК, риск узкого участка -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Руковод. группы агентских договоров — СК "ПАРИ" <span class="new-badge">R1</span></div>
+    <div class="cm">
+      Ж, 36 лет &bull; Москва &bull; 125К ЗП
+      <span class="sp sp-active">Активно ищет!</span>
+      <span class="sp sp-risk">Риск: узкий участок в СК</span>
+    </div>
+    <a href="https://hh.ru/resume/33190201000ffc0f35001153686c454b4d676f" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">8</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">7</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>СК "ПАРИ"</strong> — Руководитель группы агентских договоров <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(12 лет!)</span>
+          <div class="crr-details">Работала с Сравни.ру, Банки.ру, Финуслуги, Polis.online, Pampadu. API, CPA, SQL, Jira.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-warn">
+      <h4>Риск: 12 лет на одном участке в крупной СК</h4>
+      <p>Опыт в СК — знает продукт, но привыкла работать на отдельном участке с чётко выстроенными регламентами. 12 лет в одной компании = корпоративный менталитет, нет end-to-end опыта запуска с нуля.</p>
+    </div>
+
+    <div class="block-green">
+      <h4>Что ценно</h4>
+      <ul>
+        <li><span>Все агрегаторы</span> — работала с Сравни, Банки.ру, Финуслуги, Polis.online, Pampadu</li>
+        <li><span>Агентские договоры</span> — юр. обвязка партнёрств, наш профиль</li>
+        <li><span>SQL, Jira, API</span> — техническая грамотность</li>
+        <li><span>125К ЗП</span> — бюджетна</li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Критичные вопросы</h4>
+      <ul>
+        <li><span>End-to-end?</span> — вела ли ВЕСЬ процесс (переговоры → договор → интеграция → запуск) или только юр. часть?</li>
+        <li><span>Стартап-готовность</span> — 12 лет в одной компании с регламентами. Готова без них?</li>
+        <li><span>Инициатива</span> — подключала НОВЫХ агрегаторов или поддерживала существующих?</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Знает всех агрегаторов, бюджетна, но главный риск — 12 лет на одном участке в крупной СК. Может быть привыкла к регламентам и не способна к end-to-end работе в стартапе. Обязательно проверить на интервью.</div>
+
+    <div class="tags">
+      <span class="tag tag-orange">12 лет одна СК</span>
+      <span class="tag tag-purple">Все агрегаторы</span>
+      <span class="tag tag-blue">SQL / API</span>
+      <span class="tag tag-green">125К ЗП</span>
+      <span class="tag tag-orange">Узкий участок?</span>
+    </div>
+  </div>
+
+  <!-- R5-2: ВСК 14 лет — авто! но одна СК -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Исполнительный директор по работе с автодилерами — ВСК <span class="new-badge">R5</span></div>
+    <div class="cm">
+      М, 34 года &bull; Москва
+      <span style="background:#ff7675;color:#fff;padding:3px 12px;border-radius:14px;font-size:0.75rem;font-weight:600">АВТО</span>
+      <span class="sp sp-risk">Риск: 14 лет одна СК</span>
+    </div>
+    <a href="https://hh.ru/resume/3e28ab250002a5f17200115368696a584f4341" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">7</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">6</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>ВСК</strong> — Исполнительный директор по работе с автодилерами <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(14 лет, последние 4.8г — исп. директор)</span>
+          <div class="crr-details">B2B переговоры с первыми лицами, запуск партнёрств с нуля, P&L. КАСКО/ОСАГО автодилерский канал.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-warn">
+      <h4>Риск: 14 лет в одной крупной СК</h4>
+      <p>Вся карьера в ВСК. Знает продукт КАСКО/ОСАГО, но привык к корпоративным процессам и регламентам крупной страховой. Оффлайн-канал (автодилеры), нет digital-опыта.</p>
+    </div>
+
+    <div class="block-green">
+      <h4>Что ценно</h4>
+      <ul>
+        <li><span>КАСКО/ОСАГО</span> — наш основной рынок, автострахование</li>
+        <li><span>B2B с первыми лицами</span> — переговоры на уровне ЛПР</li>
+        <li><span>34 года, Москва</span></li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Критичные вопросы</h4>
+      <ul>
+        <li><span>Digital</span> — работал ли с онлайн-каналами, API, агрегаторами?</li>
+        <li><span>End-to-end</span> — или только свой участок (автодилеры)?</li>
+        <li><span>Стартап</span> — готов к работе без корпоративной инфраструктуры ВСК?</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> КАСКО/ОСАГО — наш рынок, но 14 лет в одной крупной СК = корпоративный менталитет. Только оффлайн (автодилеры), нет digital. Проверить адаптивность.</div>
+
+    <div class="tags">
+      <span class="tag tag-red">КАСКО / ОСАГО</span>
+      <span class="tag tag-orange">14 лет ВСК</span>
+      <span class="tag tag-orange">Оффлайн</span>
+      <span class="tag tag-orange">Узкий участок?</span>
+    </div>
+  </div>
+
+  <!-- R9-1: Pampadu + Банки.ру — end-to-end, наш рынок! -->
+  <div class="card card-a">
+    <div class="rating rating-a">7.5</div>
+    <div class="ct">РОП / BD Manager — Pampadu, Банки.ру B2B, Workle, Uremont <span class="new-badge">R9 NEW</span></div>
+    <div class="cm">
+      М, 42 года &bull; Москва
+      <span class="sp sp-active">Активно ищет!</span>
+      <span class="sp sp-risk">Риск: РОП = дорого по ЗП</span>
+    </div>
+    <a href="https://hh.ru/resume/d819f8690002e0605b0011536839624e325478" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">9</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">6</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Pampadu</strong> — РОП <span class="cl cl-aggregator">АГРЕГАТОР</span>
+          <div class="crr-details">Платформа для страховых агентов — наш прямой аналог! End-to-end партнёрства.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Банки.ру</strong> — B2B менеджер <span class="cl cl-aggregator">АГРЕГАТОР</span>
+          <div class="crr-details">Крупнейший финансовый агрегатор, B2B-партнёрства.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-fintech"></div>
+        <div class="crr-content">
+          <strong>Workle.ru</strong> — менеджер <span class="cl cl-fintech">ФИНТЕХ</span>
+          <div class="crr-details">Онлайн-платформа для агентов страхования и финансов.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-other"></div>
+        <div class="crr-content">
+          <strong>Uremont</strong> — менеджер
+          <div class="crr-details">Авто-сервис маркетплейс.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Pampadu = наш рынок!</span> — платформа для страховых агентов, прямой аналог нашего бизнеса</li>
+        <li><span>Банки.ру B2B</span> — крупнейший агрегатор, знает рынок</li>
+        <li><span>End-to-end</span> — 4 разные компании (2 агрегатора + финтех + авто), широкий опыт</li>
+        <li><span>П: 9/10</span> — сильнейшая партнёрская часть</li>
+        <li><span>Москва</span> — нет проблем с локацией</li>
+      </ul>
+    </div>
+
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Delivery-часть</span> — П:9, но Д:6. Вёл ли road map, интеграции, мультитрекинг?</li>
+        <li><span>42 года</span> — ожидания по ЗП, готовность к стартап-темпу</li>
+        <li><span>Юр. обвязка / ДДС</span> — работал ли с договорами и фин. моделью лично?</li>
+      </ul>
+    </div>
+
+    <div class="block-warn">
+      <h4>Риск: РОП — скорее всего дорого по ЗП</h4>
+      <p>42 года, уровень РОП (руководитель отдела продаж). Ожидания по ЗП скорее всего выше 300К. Для позиции delivery manager 200-300К может быть недостаточно. Первый вопрос: ожидания по ЗП.</p>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Pampadu + Банки.ру = идеальный отраслевой бэкграунд. Сильнейшая партнёрская часть (9/10). Слабее в delivery (6/10). Риск: РОП-уровень = дорого.</div>
+
+    <div class="tags">
+      <span class="tag tag-purple">Pampadu</span>
+      <span class="tag tag-purple">Банки.ру</span>
+      <span class="tag tag-green">End-to-end</span>
+      <span class="tag tag-green">Наш рынок!</span>
+      <span class="tag tag-orange">Д: 6/10</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TIER B+ ==================== -->
+<div class="tier" id="tier-b">
+  <div class="th">
+    <h2>Tier B+ — Резерв</h2>
+    <span class="tb tb-b">ПРИ НЕОБХОДИМОСТИ</span>
+  </div>
+
+  <!-- R2-1: sib.ru/Mafin/Югория — Mafin сомнителен -->
+  <div class="card card-b">
+    <div class="rating rating-b">7</div>
+    <div class="ct">Product Owner (InsurTech) — sib.ru, Mafin, Югория <span class="new-badge">R2</span></div>
+    <div class="cm">
+      М, 37 лет &bull; СПб (готов → Москва)
+      <span class="sp sp-active">Активно ищет!</span>
+      <span class="sp sp-warning">Mafin/strahovkaru — сомнительный опыт</span>
+    </div>
+    <a href="https://hh.ru/resume/808d41d1000be2b15500115368685232393458" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">7</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">9</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>sib.ru / strahovkaru.ru</strong> — Product Owner <span class="cl cl-aggregator">АГРЕГАТОР</span> <span style="color:#b2bec3">(3.5 года)</span>
+          <div class="crr-details">Агентский агрегатор страховых продуктов.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Mafin</strong> — Product Owner <span class="cl cl-aggregator">МАРКЕТПЛЕЙС</span> <span style="color:#b2bec3">(1.2 года)</span>
+          <div class="crr-details">Страховой маркетплейс. 4 продукта, MVP агентского кабинета.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>Югория</strong> — Product Owner <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(3 года)</span>
+          <div class="crr-details">Онлайн сборы <strong>x15</strong>. P&L, unit-экономика. ОСАГО, Ипотека.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-warn">
+      <h4>Mafin / strahovkaru.ru — имитация деятельности</h4>
+      <p>Проекты на деньги инвестора с нулевыми практическими результатами. Цифры в резюме не верифицированы. Оценивать по опыту в Югории (реальная СК).</p>
+    </div>
+
+    <div class="block-green">
+      <h4>Что ценно (за вычетом Mafin)</h4>
+      <ul>
+        <li><span>Югория 3 года</span> — реальная СК, сборы x15 проверяемо</li>
+        <li><span>ОСАГО-опыт</span> — автострахование</li>
+        <li><span>Разные компании</span> — не засиделся на одном месте (хотя Mafin сомнителен)</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Delivery 9/10, но ключевой опыт (Mafin, strahovkaru.ru) сомнителен. Ценен только опыт в Югории. Нужна тщательная верификация.</div>
+
+    <div class="tags">
+      <span class="tag tag-gray">Mafin (сомнит.)</span>
+      <span class="tag tag-gray">sib.ru (сомнит.)</span>
+      <span class="tag tag-orange">Югория</span>
+      <span class="tag tag-green">ОСАГО</span>
+    </div>
+  </div>
+
+  <!-- R5-1: Mafin/СК Пульс — Mafin сомнителен -->
+  <div class="card card-b">
+    <div class="rating rating-b">7</div>
+    <div class="ct">Руковод. по развитию бизнеса — Mafin, СК Пульс, Ренессанс Жизнь <span class="new-badge">R5</span></div>
+    <div class="cm">
+      Ж &bull; Москва &bull; 11+ лет
+      <span class="sp sp-active">Активно ищет!</span>
+      <span class="sp sp-warning">Mafin — сомнительный</span>
+    </div>
+    <a href="https://hh.ru/resume/61df9e5900102139da00115368667a4c616952" class="resume-link" target="_blank">Резюме на hh.ru →</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">7</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">7</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>СК Пульс</strong> — Руковод. по развитию цифровых фин. продуктов <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(2.8 года)</span>
+          <div class="crr-details">P&L, <strong>+713 млн ₽</strong>, 34 корп. клиента, автодилеры.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Mafin</strong> — Руковод. по развитию бизнеса <span style="background:#b2bec3;padding:1px 7px;border-radius:6px;font-size:0.68rem;font-weight:700;color:#fff">СОМНИТ.</span> <span style="color:#b2bec3">(1.8 года)</span>
+          <div class="crr-details">Цифры не верифицированы.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>СК Ренессанс Жизнь</strong> <span class="cl cl-insurance">СТРАХОВАЯ</span> <span style="color:#b2bec3">(4.1 года)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-warn">
+      <h4>Mafin — имитация деятельности</h4>
+      <p>Нулевые практические результаты. Цифры (+45% выручка) не верифицированы.</p>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Реальный опыт: СК Пульс (+713 млн), Ренессанс. Mafin сомнителен. Несколько СК = шире чем "один участок", но "руководитель направления" может быть overqualified.</div>
+
+    <div class="tags">
+      <span class="tag tag-gray">Mafin (сомнит.)</span>
+      <span class="tag tag-orange">СК Пульс</span>
+      <span class="tag tag-orange">Ренессанс Жизнь</span>
+      <span class="tag tag-green">+713 млн ₽</span>
+    </div>
+  </div>
+
+
+  <!-- R9-2: Pampadu PM + Абсолют Страхование -->
+  <div class="card card-b">
+    <div class="rating rating-b">7</div>
+    <div class="ct">PM — Pampadu, Абсолют Страхование <span class="new-badge">R9 NEW</span></div>
+    <div class="cm">
+      М, 34 года &bull; Санкт-Петербург &bull; 200К+
+      <span class="sp sp-active">Активно ищет!</span>
+    </div>
+    <a href="https://hh.ru/resume/27afff54000bfbda890011536847696d314c6a" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">6</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">8</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-aggregator"></div>
+        <div class="crr-content">
+          <strong>Pampadu</strong> — Project Manager <span class="cl cl-aggregator">АГРЕГАТОР</span>
+          <div class="crr-details">Платформа для страховых агентов. PM-уровень.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-insurance"></div>
+        <div class="crr-content">
+          <strong>Абсолют Страхование</strong> — Senior PM <span class="cl cl-insurance">СТРАХОВАЯ</span>
+          <div class="crr-details">Крупная СК, digital-трансформация.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block block-green">
+      <div class="block-title">Почему подходит</div>
+      <ul>
+        <li><strong>Pampadu — наш рынок:</strong> платформа для страховых агентов, прямой конкурент/аналог. Понимает агрегаторный бизнес, воронки агентов, партнёрские интеграции.</li>
+        <li><strong>Абсолют Страхование — крупная СК:</strong> опыт digital-трансформации в страховой, знает процессы СК изнутри. Полезно для переговоров с партнёрами-страховщиками.</li>
+        <li><strong>Delivery 8/10:</strong> сильный PM-трек, умеет вести проекты от идеи до запуска. Правильный уровень (PM, не директор).</li>
+        <li><strong>Активно ищет:</strong> доступен сейчас, не нужно переманивать.</li>
+      </ul>
+    </div>
+
+    <div class="block block-yellow">
+      <div class="block-title">Вопросы для интервью</div>
+      <ul>
+        <li>Что конкретно делал в Pampadu? Какие продукты/фичи вёл? Какие метрики двигал?</li>
+        <li>Как был устроен процесс подключения новых СК к платформе Pampadu? Его роль в этом?</li>
+        <li>В Абсолют — что именно делал в рамках digital-трансформации? Какие системы внедрял?</li>
+        <li>Опыт работы с партнёрами/внешними контрагентами — вёл ли коммуникацию с СК, агрегаторами?</li>
+        <li>Готовность к релокации в Москву или полностью удалённый формат?</li>
+      </ul>
+    </div>
+
+    <div class="block block-warn">
+      <div class="block-title">Риски</div>
+      <ul>
+        <li><strong>Партнёрская часть 6/10:</strong> больше PM, чем partner manager. Может не хватить навыка переговоров и построения отношений с ключевыми партнёрами.</li>
+        <li><strong>СПб:</strong> удалённый формат, нет возможности личных встреч с московскими партнёрами без командировок.</li>
+        <li><strong>Pampadu — маленькая компания:</strong> опыт может быть узким, не масштабируемым на более сложные процессы.</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Pampadu (наш рынок) + Абсолют (крупная СК). Delivery 8/10, слабее в партнёрской части. PM-level — правильный. СПб, 200К.</div>
+
+    <div class="tags">
+      <span class="tag tag-purple">Pampadu</span>
+      <span class="tag tag-orange">Абсолют Страхование</span>
+      <span class="tag tag-blue">Delivery 8/10</span>
+      <span class="tag tag-orange">СПб</span>
+    </div>
+  </div>
+
+  <!-- R9-3: МТС Partnerships + Абсолют Страхование (партнёр) -->
+  <div class="card card-b">
+    <div class="rating rating-b">6.5</div>
+    <div class="ct">Senior Manager of Partnerships — МТС, Дарить Легко <span class="new-badge">R9 NEW</span></div>
+    <div class="cm">
+      М, 31 год &bull; Балашиха &bull; 280К
+      <span class="sp sp-active">Активно ищет!</span>
+    </div>
+    <a href="https://hh.ru/resume/f4f4f453000843915800115368364c42744766" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">6</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">7</div></div>
+    </div>
+
+    <div class="cr">
+      <div class="crr">
+        <div class="crr-dot dot-fintech"></div>
+        <div class="crr-content">
+          <strong>МТС</strong> — Senior Manager of Partnerships <span class="cl cl-fintech">ФИНТЕХ</span>
+          <div class="crr-details">B2B partnerships: +20% аудитории, CR x2, x10 YoY.</div>
+        </div>
+      </div>
+      <div class="crr">
+        <div class="crr-dot dot-other"></div>
+        <div class="crr-content">
+          <strong>Дарить Легко</strong> — Менеджер по работе с партнёрами
+          <div class="crr-details">Партнёры: Абсолют Страхование, Яндекс.Плюс, Газпромбанк.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block block-green">
+      <div class="block-title">Почему подходит</div>
+      <ul>
+        <li><strong>МТС — крупный B2B partnerships:</strong> Senior Manager of Partnerships, вёл стратегические партнёрства. Рост аудитории +20%, конверсия x2, выручка x10 YoY — серьёзные цифры.</li>
+        <li><strong>Дарить Легко — работа со страховыми:</strong> среди партнёров Абсолют Страхование, Яндекс.Плюс, Газпромбанк. Понимает как строить партнёрства со страховыми компаниями.</li>
+        <li><strong>Молодой и амбициозный:</strong> 31 год, 280К — адекватные ожидания, есть потенциал роста.</li>
+        <li><strong>Сильные метрики:</strong> умеет считать и показывать результат в цифрах — важно для delivery.</li>
+      </ul>
+    </div>
+
+    <div class="block block-yellow">
+      <div class="block-title">Вопросы для интервью</div>
+      <ul>
+        <li>Расскажите про partnership с Абсолют Страхование в Дарить Легко — что делали, какие результаты?</li>
+        <li>Как был устроен процесс подключения нового партнёра в МТС? От первого контакта до запуска — ваша роль?</li>
+        <li>Цифры x10 YoY — за счёт чего? Новые партнёры, оптимизация существующих, или масштабирование?</li>
+        <li>Опыт управления проектами: вели ли бэклог, спринты, работали ли с разработкой напрямую?</li>
+        <li>Страхование — насколько глубоко погружались в продукт (ОСАГО, КАСКО, ипотека)?</li>
+      </ul>
+    </div>
+
+    <div class="block block-warn">
+      <div class="block-title">Риски</div>
+      <ul>
+        <li><strong>Страхование ≠ основная экспертиза:</strong> работал со страховыми как с одним из типов партнёров, а не внутри страхового рынка. Потребуется время на погружение в продукт.</li>
+        <li><strong>Корпоративный бэкграунд (МТС):</strong> привык к ресурсам и процессам крупной компании. Может быть сложно в стартапе/среднем бизнесе с ограниченными ресурсами.</li>
+        <li><strong>Балашиха:</strong> формально МО, но рядом с Москвой — не критично, но уточнить готовность к офису.</li>
+      </ul>
+    </div>
+
+    <div class="verdict"><strong>Вердикт:</strong> Сильный B2B partnerships трек. Страхование — только один из партнёров, не основная экспертиза. Хорошие цифры роста. 31 год, 280К.</div>
+
+    <div class="tags">
+      <span class="tag tag-blue">МТС</span>
+      <span class="tag tag-green">B2B Partnerships</span>
+      <span class="tag tag-orange">Страх. ≠ основное</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SaaS / B2B ПЛАТФОРМЫ ==================== -->
+<div class="tier" id="tier-saas">
+  <div class="th">
+    <h2>SaaS / B2B Платформы — Delivery & Partnerships</h2>
+    <span class="tb" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe)">НОВОЕ НАПРАВЛЕНИЕ R11-R15</span>
+  </div>
+
+  <!-- R13-3: АТОЛ SaaS + Ростех — сбалансированный -->
+  <div class="card card-a">
+    <div class="rating rating-a">7.5</div>
+    <div class="ct">Руковод. партнёрских программ — АТОЛ SaaS, Ростех <span class="new-badge">R13</span></div>
+    <div class="cm">
+      Ж, 34 года
+      <span class="sp sp-active">Активно ищет!</span>
+    </div>
+    <a href="https://hh.ru/resume/cd5c327800104f8a490011536856413758424b" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">8</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">7</div></div>
+    </div>
+    <div class="cr">
+      <div class="crr"><div class="crr-dot dot-fintech"></div><div class="crr-content"><strong>АТОЛ</strong> — SaaS-платформа: White Label + 1С-интеграции + финтех-партнёры <span class="cl cl-fintech">SAAS</span></div></div>
+      <div class="crr"><div class="crr-dot dot-other"></div><div class="crr-content"><strong>Ростех</strong> — <strong>+200% за 11 мес</strong></div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Финтех SaaS вертикаль</span> — АТОЛ (платёжные системы), White Label решения, 1С-интеграции — технически релевантно</li>
+        <li><span>Лучший баланс П/Д</span> — 8/7, редко у кого оба показателя высокие одновременно</li>
+        <li><span>Ростех: +200% за 11 мес</span> — доказанный рост партнёрской сети, time-to-market партнёра с 3 мес до 3 недель</li>
+        <li><span>15+ партнёров</span> — финтех + EdTech вертикали, 122% плана в АТОЛ</li>
+        <li><span>Комиссионные модели</span> — знает как строить финмодель партнёрства</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>End-to-end</span> — сколько партнёров запустила ЛИЧНО от переговоров до первой транзакции?</li>
+        <li><span>ДДС и юридика</span> — составляла ли финмодели, работала с агентскими/комиссионными договорами?</li>
+        <li><span>Стартап vs корпорация</span> — АТОЛ и Ростех это крупные компании. Готова к стартап-темпу?</li>
+        <li><span>ЗП ожидания</span> — не указана, уточнить вилку 200-300К</li>
+      </ul>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Сбалансированный профиль (П:8/Д:7). SaaS + White Label + 1С-интеграции + финтех. Ростех +200%. Знает комиссионные модели и партнёрские программы.</div>
+    <div class="tags">
+      <span class="tag tag-purple">АТОЛ SaaS</span>
+      <span class="tag tag-green">White Label</span>
+      <span class="tag tag-green">+200%</span>
+      <span class="tag tag-blue">П:8 Д:7</span>
+    </div>
+  </div>
+
+  <!-- R13-5: DION PO/BizDev — финтех -->
+  <div class="card card-a">
+    <div class="rating rating-a">7.5</div>
+    <div class="ct">PO / BizDev — DION финтех корп. SaaS <span class="new-badge">R13</span></div>
+    <div class="cm">М, 35 лет</div>
+    <a href="https://hh.ru/resume/14c61c45001053277c00115368366d61444346" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">7</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">8</div></div>
+    </div>
+    <div class="cr">
+      <div class="crr"><div class="crr-dot dot-fintech"></div><div class="crr-content"><strong>DION</strong> — PO/BizDev корп. SaaS, сквозной discovery→sales→партнёры <span class="cl cl-fintech">ФИНТЕХ</span><div class="crr-details">Банковские интеграции, 400 млн выручки</div></div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Финтех вертикаль</span> — DION корп. SaaS с банковскими интеграциями, 400 млн выручки</li>
+        <li><span>Сквозной контур</span> — discovery → sales → партнёры, полный цикл от идеи до денег</li>
+        <li><span>Openmagic Web3</span> — 30+ партнёров, $600K пилотов, B2B2C партнёрская сеть</li>
+        <li><span>Банковские интеграции</span> — сложные финтех-интеграции, релевантно для страхового рынка</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Партнёры лично</span> — из 40+ клиентов DION сколько запустил end-to-end сам?</li>
+        <li><span>Финмодель</span> — строил ли unit-экономику и P&L для партнёрств?</li>
+        <li><span>Юр. обвязка</span> — работал ли с агентскими договорами, схемами ДДС?</li>
+        <li><span>Уровень PO → DM</span> — Product Owner ≠ Delivery Manager, готов к операционке?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: PO-уровень может быть overqualified</h4>
+      <p>Product Owner/BizDev — это уровень выше delivery manager. Может не захотеть идти на операционную роль. ЗП не указана — уточнить.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Финтех SaaS: discovery→sales→партнёры сквозной процесс. Банковские интеграции, 400 млн. Сильный delivery + знает финансы.</div>
+    <div class="tags">
+      <span class="tag tag-green">Финтех SaaS</span>
+      <span class="tag tag-green">400 млн</span>
+      <span class="tag tag-blue">П:7 Д:8</span>
+    </div>
+  </div>
+
+  <!-- R12-2: eLama PM — 7 интеграций за год -->
+  <div class="card card-a">
+    <div class="rating rating-a">7.5</div>
+    <div class="ct">PM интеграций — eLama (7 площадок за 12 мес) <span class="new-badge">R12</span></div>
+    <div class="cm">
+      Ж, 29 лет &bull; СПб (готова к переезду) &bull; 150К
+      <span class="sp sp-active">Активно ищет!</span>
+    </div>
+    <a href="https://hh.ru/resume/d1fb3d62000f91e9f2001153686f4b49454d32" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">6</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">9</div></div>
+    </div>
+    <div class="cr">
+      <div class="crr"><div class="crr-dot dot-fintech"></div><div class="crr-content"><strong>eLama</strong> — PM интеграций <span class="cl cl-fintech">ADTECH</span><div class="crr-details">7 рекламных площадок за 12 мес (Авито, Ozon, WB, Т-Банк). Roadmap, переговоры с партнёрами, обучила 100+ чел.</div></div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>7 интеграций за 12 мес!</span> — Авито, Ozon, WB, Т-Банк — доказанная скорость delivery</li>
+        <li><span>Партнёрские переговоры</span> — условия, roadmap, согласование с площадками</li>
+        <li><span>Обучила 100+ человек</span> — умеет масштабировать знания и процессы</li>
+        <li><span>End-to-end</span> — полный цикл от переговоров до запуска интеграции</li>
+        <li><span>150К ЗП</span> — бюджетна, есть запас для мотивации</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Финансовая часть</span> — работала ли с финмоделями, P&L, комиссиями? eLama это AdTech, не финтех</li>
+        <li><span>Юр. обвязка</span> — договоры, ДДС, агентские — или только техническая интеграция?</li>
+        <li><span>Переезд в Москву</span> — СПб, готова к переезду. Сроки, условия?</li>
+        <li><span>Страхование</span> — насколько готова погружаться в новый домен?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: AdTech ≠ InsurTech</h4>
+      <p>eLama — рекламная платформа, не финтех/страхование. Интеграции технически похожи (API, площадки), но домен другой. Нет опыта с финмоделями, ДДС, регуляторикой.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Сильнейший delivery (9/10) — 7 интеграций за год! Переговоры с Авито, Ozon, WB, Т-Банк. Молодая, бюджетная (150К), готова к переезду.</div>
+    <div class="tags">
+      <span class="tag tag-purple">eLama</span>
+      <span class="tag tag-green">7 интеграций/год</span>
+      <span class="tag tag-blue">Delivery 9/10</span>
+      <span class="tag tag-green">150К</span>
+    </div>
+  </div>
+
+  <!-- R11S-1: Zaimbros МФО — прямое попадание -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Delivery Manager — Zaimbros МФО CPA-платформа <span class="new-badge">R11</span></div>
+    <div class="cm">
+      М, 29 лет &bull; Екатеринбург (готов к переезду)
+    </div>
+    <a href="https://hh.ru/resume/227192bf0010517b7300115368583231303561" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">5</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">8</div></div>
+    </div>
+    <div class="cr">
+      <div class="crr"><div class="crr-dot dot-fintech"></div><div class="crr-content"><strong>Zaimbros</strong> — CPA-платформа МФО с нуля <span class="cl cl-fintech">ФИНТЕХ</span><div class="crr-details">Витрины офферов, API-интеграции с CPA-сетями, постбэк. MVP за 3 мес, 1.59M руб/мес пиковая выручка.</div></div></div>
+      <div class="crr"><div class="crr-dot dot-other"></div><div class="crr-content"><strong>WSS-Consulting → SberTech</strong> — Enterprise delivery (30 проектов)</div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Прямой домен — МФО CPA!</span> — Zaimbros: финтех/performance-платформа МФО, витрины офферов</li>
+        <li><span>Запустил с нуля</span> — MVP за 3 мес, от UI/UX до монетизации, 1.59 млн/мес выручки</li>
+        <li><span>API + CPA-сети + постбэк</span> — техстек релевантен нашему бизнесу</li>
+        <li><span>Enterprise delivery</span> — 30 проектов в WSS-Consulting/SberTech</li>
+        <li><span>Молодой (29)</span> — энергичный, готов к стартап-темпу</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Партнёрская часть</span> — П: 5/10. Вёл ли переговоры с партнёрами лично? Или только delivery?</li>
+        <li><span>Финмодель / P&L</span> — строил ли unit-экономику CPA-платформы? Или получал готовое ТЗ?</li>
+        <li><span>Юр. обвязка / ДДС</span> — договоры с CPA-сетями, МФО — участвовал ли?</li>
+        <li><span>Переезд из Екб</span> — готов к переезду в Москву? Сроки, условия?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: слабая партнёрская часть (П: 5/10)</h4>
+      <p>Сильный delivery, но позиция 60% партнёрский менеджер. Нужно проверить на интервью: вёл ли переговоры с CPA-сетями и МФО лично, или только строил платформу.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Прямое попадание в МФО-домен! Строил CPA-платформу с нуля, знает постбэк, CPA-сети, финтех. Enterprise delivery 30 проектов. Молодой, готов к переезду.</div>
+    <div class="tags">
+      <span class="tag tag-green">МФО-домен!</span>
+      <span class="tag tag-green">CPA-платформа</span>
+      <span class="tag tag-blue">Enterprise DM</span>
+      <span class="tag tag-orange">Екатеринбург</span>
+    </div>
+  </div>
+
+  <!-- R13-1: Oracle HCM — сильнейшая партнёрка -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Head of Partnerships — Oracle HCM SaaS <span class="new-badge">R13</span></div>
+    <div class="cm">М, 37 лет &bull; 250К</div>
+    <a href="https://hh.ru/resume/902d0b75000f78d513001153684f6d524d6d47" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">9</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">5</div></div>
+    </div>
+    <div class="cr">
+      <div class="crr"><div class="crr-dot dot-fintech"></div><div class="crr-content"><strong>Oracle HCM</strong> — партнёрская сеть с нуля <span class="cl cl-fintech">SAAS</span><div class="crr-details">30+ партнёров, 60% лидов через партнёрский канал.</div></div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>30+ партнёров с нуля</span> — построил партнёрскую сеть enterprise SaaS с нуля</li>
+        <li><span>60% лидов из канала</span> — партнёрский канал стал основным источником лидов</li>
+        <li><span>CAC -40%</span> — оптимизировал экономику привлечения через партнёров</li>
+        <li><span>+45% выручки</span> — доказанный рост от партнёрств</li>
+        <li><span>250К</span> — в целевой вилке ЗП</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Delivery часть</span> — Д: 5/10. Вёл ли road map, мультитрекинг, интеграции лично?</li>
+        <li><span>Enterprise → стартап</span> — Oracle HCM это enterprise. Готов к стартап-хаосу?</li>
+        <li><span>Техническая глубина</span> — API-интеграции, или только бизнес-переговоры?</li>
+        <li><span>Страхование</span> — готов погружаться в новый домен?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: слабый delivery (Д: 5/10)</h4>
+      <p>Сильнейший партнёрский менеджер, но позиция 40% delivery. Oracle HCM — enterprise продажи, не operations. Может не справиться с операционкой (road map, интеграции, мультитрекинг).</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Сильнейшая партнёрка (9/10) — 30+ партнёров, 60% лидов. Но delivery слабее (5/10). Enterprise SaaS. 250К — в бюджете.</div>
+    <div class="tags">
+      <span class="tag tag-purple">Oracle HCM</span>
+      <span class="tag tag-green">30+ партнёров</span>
+      <span class="tag tag-green">П:9</span>
+      <span class="tag tag-orange">Д:5</span>
+    </div>
+  </div>
+
+  <!-- R14-2: Маяк SaaS + Контур — supply-side -->
+  <div class="card card-a">
+    <div class="rating rating-a">6.5</div>
+    <div class="ct">Partnership Manager — Маяк SaaS, Контур, Price.ru <span class="new-badge">R14</span></div>
+    <div class="cm">Ж &bull; Екатеринбург, 180К (готова к переезду)</div>
+    <a href="https://hh.ru/resume/ee2aa49c0005e8f8f7001153684261554a6c45" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">8</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">5</div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>1000+ лидов/мес рекорд</span> — масштабируемый партнёрский канал Маяк SaaS</li>
+        <li><span>ЛК партнёра с нуля</span> — строила партнёрский кабинет, знает продуктовую сторону</li>
+        <li><span>Контур</span> — крупная B2B-платформа, знает корпоративные продажи</li>
+        <li><span>E-PROMO: CPA-сети, вебмастеры</span> — supply-side паттерн релевантен для Insapp</li>
+        <li><span>180К</span> — бюджетна, есть запас для мотивации</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Delivery часть</span> — Д: 5/10. Управляла ли road map, интеграциями, мультитрекингом?</li>
+        <li><span>Финмодель / ДДС</span> — работала ли с P&L партнёрств, юр. обвязкой?</li>
+        <li><span>Переезд из Екб</span> — готова к Москве? Сроки?</li>
+        <li><span>Страхование</span> — маркетинг/CPA бэкграунд, не финтех. Готова к домену?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: маркетинг-фокус, слабый delivery</h4>
+      <p>Supply-side (привлечение трафика через вебмастеров) — ближе к маркетингу, чем к delivery management. Д: 5/10 — может не потянуть операционку с road map и интеграциями.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> 1000+ лидов/мес, ЛК партнёра с нуля, подключение вебмастеров. Supply-side. Контур + Price.ru. Бюджетна (180К).</div>
+    <div class="tags">
+      <span class="tag tag-purple">Контур</span>
+      <span class="tag tag-green">1000+ лидов/мес</span>
+      <span class="tag tag-green">Supply-side</span>
+    </div>
+  </div>
+
+  <!-- R12-1: Roistat — Таиланд -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Sr PM — Roistat, Social Discovery <span class="new-badge">R12</span></div>
+    <div class="cm">М, 27 лет &bull; Таиланд (готов к переезду) &bull; $1700</div>
+    <a href="https://hh.ru/resume/6e00de8a0010516950001153683670684f3339" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">6</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">8</div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>Roistat: 40 клиентов</span> — API/CRM/CMS интеграции, полный цикл presale → внедрение</li>
+        <li><span>Social Discovery: +$40K/мес</span> — онбординг партнёров, апсейлы, Jira/Scrum</li>
+        <li><span>Хороший баланс П/Д</span> — 6/8, presale + delivery в одном лице</li>
+        <li><span>$1700/мес</span> — бюджетен, готов к переезду</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для интервью</h4>
+      <ul>
+        <li><span>Переезд из Таиланда</span> — реально готов? Сроки, гражданство РФ?</li>
+        <li><span>Финмодель / P&L</span> — строил ли unit-экономику? Или только technical delivery?</li>
+        <li><span>Юр. обвязка</span> — договоры, ДДС — или только техническая интеграция?</li>
+        <li><span>Молодой (27)</span> — опыт управления стейкхолдерами? Достаточно ли зрелости?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: Таиланд — логистика переезда</h4>
+      <p>Живёт в Таиланде. Заявляет готовность к переезду, но реальные сроки и мотивация под вопросом. Гражданство РФ — уточнить. Молодой (27) — может не хватить зрелости для стейкхолдер-менеджмента.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> Roistat: 40 клиентов, API/CRM/CMS интеграции, presale. Social Discovery: онбординг партнёров. Молодой (27). Риск: Таиланд — готов ли реально к переезду?</div>
+    <div class="tags">
+      <span class="tag tag-purple">Roistat</span>
+      <span class="tag tag-blue">40 клиентов</span>
+      <span class="tag tag-orange">Таиланд</span>
+    </div>
+  </div>
+
+  <!-- R13-4: E1CARD — ЗАНЯТ -->
+  <div class="card card-a">
+    <div class="rating rating-a">7</div>
+    <div class="ct">Head of Partnerships — E1CARD, Sunlight, Ситимобил <span class="new-badge">R13</span></div>
+    <div class="cm">
+      М, 32 года
+      <span class="sp sp-risk">ЗАНЯТ — не ищет</span>
+    </div>
+    <a href="https://hh.ru/resume/e946a98400102f5ed80011536857304c334736" target="_blank" class="resume-link">Резюме на hh.ru &rarr;</a>
+    <div class="dual-rating">
+      <div class="dr-item"><div class="dr-label">П (партнёрский)</div><div class="dr-val dr-p">8</div></div>
+      <div class="dr-item"><div class="dr-label">Д (delivery)</div><div class="dr-val dr-d">6</div></div>
+    </div>
+    <div class="block-green">
+      <h4>Почему подходит</h4>
+      <ul>
+        <li><span>E1CARD: API-интеграции</span> — платёжная система, международная партнёрская сеть</li>
+        <li><span>Sunlight: 550 млн, 400K+ клиентов</span> — масштаб маркетплейса финансовых услуг</li>
+        <li><span>Ситимобил: CAC -57%</span> — оптимизация через партнёрский канал</li>
+        <li><span>Много вертикалей</span> — платежи, маркетплейс, e-commerce (Lamoda), транспорт</li>
+      </ul>
+    </div>
+    <div class="block-yellow">
+      <h4>Вопросы для хантинга</h4>
+      <ul>
+        <li><span>ЗАНЯТ</span> — вышел на новое место. Стоит ли пробовать через 3-6 мес?</li>
+        <li><span>ЗП ожидания</span> — Head of Partnerships может быть выше 300К</li>
+        <li><span>Мотивация к смене</span> — что может переманить с нового места?</li>
+      </ul>
+    </div>
+    <div class="block-warn">
+      <h4>Риск: ЗАНЯТ — вышел на новое место</h4>
+      <p>Не ищет работу. Хантинг возможен, но сложен. Оставить в резерве на 3-6 мес, когда пройдёт испытательный срок.</p>
+    </div>
+    <div class="verdict"><strong>Вердикт:</strong> API-интеграции + банки + 550 млн. E1CARD/Sunlight/Ситимобил. Но ЗАНЯТ — попытка хантинга.</div>
+    <div class="tags">
+      <span class="tag tag-purple">E1CARD</span>
+      <span class="tag tag-green">550 млн</span>
+      <span class="tag tag-red">Занят</span>
+    </div>
+  </div>
+
+  <!-- B+ SaaS кандидаты — компактно -->
+  <div class="mbox" style="margin-top:16px">
+    <h2>B+ резерв (SaaS/B2B)</h2>
+    <table class="summary-table">
+      <thead><tr><th>#</th><th>Кто</th><th>Компании</th><th>П</th><th>Д</th><th>Резюме</th><th>Примечание</th></tr></thead>
+      <tbody>
+        <tr><td>R11S-2</td><td>М, 28, Краснодар, 160К</td><td>Umnico Head of Partnerships</td><td><strong>8</strong></td><td>4</td><td><a href="https://hh.ru/resume/abf21dee00102f6e6b001153686f4133626a63" target="_blank">hh.ru</a></td><td>351 партнёр в 9 странах, 13+ млн выручки</td></tr>
+        <tr><td>R14-3</td><td>Ж, 32, Москва, 150К</td><td>Robokassa (9.5 лет)</td><td>7</td><td>5</td><td><a href="https://hh.ru/resume/44f8f37b000c5f3ccd00115368437277415956" target="_blank">hh.ru</a></td><td>Платёжные интеграции, SLA 99%, 300 млн₽/мес</td></tr>
+        <tr><td>R14-4</td><td>Ж, 30, СПб, 120К</td><td>Авито KAM + Контур</td><td>7</td><td><strong>8</strong></td><td><a href="https://hh.ru/resume/f6849c64001049543800115368617736394546" target="_blank">hh.ru</a></td><td>API/White Label, 15 новых партнёров</td></tr>
+        <tr><td>R15-1</td><td>М, 38, Казань</td><td>Vimapay Integration DM</td><td>7</td><td><strong>9</strong></td><td><a href="https://hh.ru/resume/0a44bc77000351d6a8001153684e7045765571" target="_blank">hh.ru</a></td><td>B2B онбординг, gambling</td></tr>
+        <tr><td>R15-2</td><td>Ж, 42, СПб</td><td>ПСБ Team Lead Affiliate</td><td><strong>8</strong></td><td>5</td><td><a href="https://hh.ru/resume/cbf13534001041f849001153685a5059554455" target="_blank">hh.ru</a></td><td>Финансовая CPA-вертикаль банка</td></tr>
+        <tr><td>R11S-3</td><td>М, 33, Казань, 200К</td><td>Roistat/DIGINETICA PM</td><td>3</td><td><strong>8</strong></td><td><a href="https://hh.ru/resume/caf3f709000d38dea90011536878425254344c" target="_blank">hh.ru</a></td><td>SaaS-интеграции (ChatApp, Wazzup, RetailCRM)</td></tr>
+        <tr><td>R15-3</td><td>Ж, 27, Минск</td><td>Call-tracking SaaS PM</td><td>6</td><td><strong>8</strong></td><td><a href="https://hh.ru/resume/10126bbc00103225ce00115368437438766b58" target="_blank">hh.ru</a></td><td>SaaS PM, Минск</td></tr>
+        <tr><td>R15-4</td><td>Ж, 31, СПб</td><td>HR-Link Partner Manager</td><td>7</td><td>6</td><td><a href="https://hh.ru/resume/ea1af9c8000e1121c0001153684a394c316d6f" target="_blank">hh.ru</a></td><td>HRTech партнёрства</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== OVERQUALIFIED / НЕ DELIVERY ==================== -->
+<div class="tier" id="tier-oq">
+  <div class="th">
+    <h2>Overqualified / Не delivery</h2>
+    <span class="tb tb-extra">НЕ ПРИОРИТЕТ</span>
+  </div>
+
+  <!-- R1-9: Overqualified -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">OQ</div>
+    <div class="ct">Директор по развитию продаж — РСО Евроинс, Сравни.ру <span class="new-badge">R1</span></div>
+    <div class="cm">
+      М, 36 лет &bull; Москва
+      <span class="sp sp-overqualified">OVERQUALIFIED</span>
+      <span class="sp sp-urgent">Решает оффер</span>
+    </div>
+
+    <a href="https://hh.ru/resume/8f773fd80000db7c8300115368576667344531" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> Директор по продажам, C-Level, 2000+ партнёров. Overqualified: не пойдёт на delivery за 200-300К. Оставлен на случай если согласится.</div>
+
+    <div class="tags">
+      <span class="tag tag-gray">OVERQUALIFIED</span>
+      <span class="tag tag-purple">Сравни.ру</span>
+      <span class="tag tag-orange">Евроинс</span>
+      <span class="tag tag-green">9 агрегаторов</span>
+    </div>
+  </div>
+
+  <!-- R1-7: Affiliate -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">AF</div>
+    <div class="ct">Head of Affiliate / PO — Выберу.ру, МТС Банк <span class="new-badge">R1</span></div>
+    <div class="cm">
+      М, 36 лет &bull; Москва
+      <span class="sp sp-overqualified">AFFILIATE, НЕ DELIVERY</span>
+    </div>
+
+    <a href="https://hh.ru/resume/848c9103000fd55aa100115368515046707364" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> Affiliate (вебмастера, CPA) — другая специализация, не B2B delivery. Нет страхования. Head of = возможно overqualified.</div>
+
+    <div class="tags">
+      <span class="tag tag-gray">AFFILIATE</span>
+      <span class="tag tag-purple">Выберу.ру</span>
+      <span class="tag tag-orange">Другой профиль</span>
+    </div>
+  </div>
+
+  <!-- R7-1 -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">6</div>
+    <div class="ct">PM / BizDev — МТС Финтех, Euler Hermes/Allianz <span class="new-badge">R7</span></div>
+    <div class="cm">М, 37 лет &bull; Москва</div>
+    <a href="https://hh.ru/resume/f6161882000dab9aec001153686b7a65774732" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> Кредитное страхование (не авто). Далёкий профиль. Резерв последней очереди.</div>
+    <div class="tags"><span class="tag tag-orange">Далёкий профиль</span></div>
+  </div>
+
+  <!-- R1-8: Россельхозбанк — overqualified -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">OQ</div>
+    <div class="ct">Нач. управления цифрового бизнеса — Россельхозбанк <span class="new-badge">R1</span></div>
+    <div class="cm">М, 44 года &bull; Москва <span class="sp sp-overqualified">OVERQUALIFIED</span></div>
+    <a href="https://hh.ru/resume/cb9373c200035bbdf70011536867774a75774b" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> 200+ партнёров, но demand-side (банк). 44 года, "начальник управления" = overqualified. Корп. менталитет.</div>
+    <div class="tags"><span class="tag tag-gray">Overqualified</span><span class="tag tag-orange">Demand-side</span></div>
+  </div>
+
+  <!-- R2-2: Фордевинд — 350К, жизнь не авто -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">5</div>
+    <div class="ct">Менеджер партнёрских продаж — Фордевинд, Росгосстрах Жизнь <span class="new-badge">R2</span></div>
+    <div class="cm">М, 30 лет &bull; Москва &bull; 350К ЗП</div>
+    <a href="https://hh.ru/resume/cceb89b7000d8756e9001153687776314d4c36" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> Страхование жизни (не авто). 350К — выше бюджета. Узкий рынок.</div>
+    <div class="tags"><span class="tag tag-orange">350К ЗП</span><span class="tag tag-orange">Жизнь, не авто</span></div>
+  </div>
+
+  <!-- R1-6 -->
+  <div class="card card-extra">
+    <div class="rating rating-extra">5</div>
+    <div class="ct">Менеджер по развитию — Атлант-М, Белгосстрах <span class="new-badge">R1</span></div>
+    <div class="cm">Ж &bull; Минск</div>
+    <a href="https://hh.ru/resume/9c276e45000f5188930011536871496858546d" class="resume-link resume-link-gray" target="_blank">Резюме на hh.ru →</a>
+    <div class="verdict"><strong>Вердикт:</strong> Минск. Белорусский рынок ≠ российский.</div>
+    <div class="tags"><span class="tag tag-orange">Минск</span></div>
+  </div>
+</div>
+
+<!-- Summary table -->
+<div class="mbox" id="summary">
+  <h2>Сводная таблица (по приоритету)</h2>
+  <table class="summary-table">
+    <thead>
+      <tr><th>#</th><th>Tier</th><th>Кто</th><th>Компании</th><th>П</th><th>Д</th><th>Примечание</th></tr>
+    </thead>
+    <tbody>
+      <tr style="background:#fef2f2">
+        <td>R1-1</td><td><strong style="color:#d63031">S</strong></td><td>Ж, 40, Алматы</td><td>Сравни.ру → Ozon Fintech</td><td><strong>9</strong></td><td><strong>10</strong></td><td style="color:#e17055">End-to-end, но Алматы — штат?</td>
+      </tr>
+      <tr style="background:#fef2f2">
+        <td>R3-1</td><td><strong style="color:#d63031">S</strong></td><td>М, 31, СПб</td><td>Финуслуги → Росстрах</td><td>6</td><td><strong>8</strong></td><td style="color:#059669">PM-level, ОСАГО, end-to-end</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R4-1</td><td><strong style="color:#00b894">A</strong></td><td>М, 33, Москва</td><td>РТ Доктис → СберЗдоровье</td><td>7</td><td>7</td><td style="color:#059669">Стартапы, end-to-end</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R1-4</td><td><strong style="color:#00b894">A</strong></td><td>Ж, 36, Мск, 125К</td><td>СК ПАРИ (12 лет)</td><td><strong>8</strong></td><td>7</td><td style="color:#e17055">Все агрегаторы, но узкий участок</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R5-2</td><td><strong style="color:#00b894">A</strong></td><td>М, 34, Москва</td><td>ВСК (14 лет)</td><td>7</td><td>6</td><td style="color:#e17055">★АВТО, но одна СК + оффлайн</td>
+      </tr>
+      <tr>
+        <td>R2-1</td><td><strong style="color:#74b9ff">B+</strong></td><td>М, 37, СПб→Мск</td><td>sib.ru → Mafin → Югория</td><td>7</td><td><strong>9</strong></td><td style="color:#e17055">Mafin сомнителен</td>
+      </tr>
+      <tr>
+        <td>R5-1</td><td><strong style="color:#74b9ff">B+</strong></td><td>Ж, Москва</td><td>Mafin → СК Пульс</td><td>7</td><td>7</td><td style="color:#e17055">Mafin сомнителен</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R9-1</td><td><strong style="color:#00b894">A</strong></td><td>М, 42, Москва</td><td>Pampadu → Банки.ру B2B</td><td><strong>9</strong></td><td>6</td><td style="color:#059669">★ Наш рынок! End-to-end</td>
+      </tr>
+      <tr>
+        <td>R9-2</td><td><strong style="color:#74b9ff">B+</strong></td><td>М, 34, СПб, 200К</td><td>Pampadu PM → Абсолют</td><td>6</td><td><strong>8</strong></td><td style="color:#059669">Pampadu + крупная СК</td>
+      </tr>
+      <tr>
+        <td>R9-3</td><td><strong style="color:#74b9ff">B+</strong></td><td>М, 31, Балашиха, 280К</td><td>МТС → Дарить Легко</td><td>6</td><td>7</td><td style="color:#636e72">B2B, страх. не основное</td>
+      </tr>
+      <tr style="background:#f5f0ff"><td colspan="7" style="font-weight:700;color:#6c5ce7">SaaS / B2B Платформы (R11-R15)</td></tr>
+      <tr style="background:#f0fff0">
+        <td>R13-3</td><td><strong style="color:#00b894">A</strong></td><td>Ж, 34</td><td>АТОЛ SaaS + Ростех</td><td><strong>8</strong></td><td>7</td><td style="color:#059669">White Label, +200%</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R13-5</td><td><strong style="color:#00b894">A</strong></td><td>М, 35</td><td>DION финтех SaaS</td><td>7</td><td><strong>8</strong></td><td style="color:#059669">Банк-интеграции, 400 млн</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R12-2</td><td><strong style="color:#00b894">A</strong></td><td>Ж, 29, СПб, 150К</td><td>eLama PM интеграций</td><td>6</td><td><strong>9</strong></td><td style="color:#059669">7 интеграций/год!</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R11S-1</td><td><strong style="color:#00b894">A</strong></td><td>М, 29, Екб</td><td>Zaimbros МФО CPA</td><td>5</td><td><strong>8</strong></td><td style="color:#059669">МФО-домен! CPA с нуля</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R13-1</td><td><strong style="color:#00b894">A</strong></td><td>М, 37, 250К</td><td>Oracle HCM</td><td><strong>9</strong></td><td>5</td><td style="color:#059669">30+ партнёров, 60% лидов</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R14-2</td><td><strong style="color:#00b894">A</strong></td><td>Ж, Екб, 180К</td><td>Маяк SaaS + Контур</td><td><strong>8</strong></td><td>5</td><td style="color:#059669">1000+ лидов/мес</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R12-1</td><td><strong style="color:#00b894">A</strong></td><td>М, 27, Таиланд</td><td>Roistat Sr PM</td><td>6</td><td><strong>8</strong></td><td style="color:#e17055">40 клиентов, но Таиланд</td>
+      </tr>
+      <tr style="background:#f0fff0">
+        <td>R13-4</td><td><strong style="color:#00b894">A</strong></td><td>М, 32 (ЗАНЯТ)</td><td>E1CARD/Sunlight</td><td><strong>8</strong></td><td>6</td><td style="color:#e17055">550 млн, но занят</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R1-9</td><td><span style="color:#636e72">OQ</span></td><td>М, 36, Москва</td><td>Евроинс → Сравни.ру</td><td><strong>10</strong></td><td><strong>8</strong></td><td style="color:#636e72">Overqualified</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R1-7</td><td><span style="color:#636e72">AF</span></td><td>М, 36, Москва</td><td>Выберу.ру → МТС Банк</td><td><strong>8</strong></td><td>7</td><td style="color:#636e72">Affiliate ≠ delivery</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R1-8</td><td><span style="color:#636e72">OQ</span></td><td>М, 44, Москва</td><td>Россельхозбанк</td><td>7</td><td>7</td><td style="color:#636e72">Demand, OQ, 44г</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R2-2</td><td><span style="color:#636e72">—</span></td><td>М, 30, Мск, 350К</td><td>Фордевинд → РГС Жизнь</td><td>6</td><td>7</td><td style="color:#636e72">350К, жизнь не авто</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R7-1</td><td><span style="color:#636e72">—</span></td><td>М, 37, Москва</td><td>МТС Финтех → Allianz</td><td>6</td><td>7</td><td style="color:#636e72">Далёкий</td>
+      </tr>
+      <tr style="background:#f5f5f5">
+        <td>R1-6</td><td><span style="color:#636e72">—</span></td><td>Ж, Минск</td><td>Белгосстрах</td><td>5</td><td>6</td><td style="color:#636e72">Минск</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Next steps -->
+<div class="mbox" id="next-steps">
+  <h2>Следующие шаги</h2>
+  <div class="mgrid">
+    <div class="mitem" style="border-left-color:#d63031">
+      <h3 style="color:#d63031">1. Страхование: R1-1 + R3-1</h3>
+      <p>R1-1: Сравни.ру, delivery 10/10. R3-1: Финуслуги + Росстрах, PM-level. Приоритет #1.</p>
+    </div>
+    <div class="mitem" style="border-left-color:#6c5ce7">
+      <h3 style="color:#6c5ce7">2. SaaS: R13-3 + R13-5 + R12-2</h3>
+      <p>АТОЛ (П:8/Д:7), DION (П:7/Д:8), eLama (Д:9, 7 интеграций/год). Сбалансированные профили.</p>
+    </div>
+    <div class="mitem" style="border-left-color:#00b894">
+      <h3 style="color:#00b894">3. R9-1 (Pampadu) + R11S-1 (Zaimbros)</h3>
+      <p>R9-1: Pampadu+Банки.ру = наш рынок. R11S-1: МФО CPA-платформа с нуля = прямой домен.</p>
+    </div>
+    <div class="mitem" style="border-left-color:#0984e3">
+      <h3 style="color:#0984e3">4. hh.ru исчерпан — дальше LinkedIn</h3>
+      <p>180 запросов, ~2270 резюме. Дальше: LinkedIn Premium, Telegram, рекомендации.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- container -->
+
+<div class="footer">
+  <p>Delivery Manager — Шортлист &bull; обновлено 04.04.2026</p>
+  <p>15 раундов, 180 запросов, ~2270 резюме, 27 кандидатов (страхование + SaaS/B2B). Фильтры: end-to-end опыт, уровень до продакта, партнёрства + delivery.</p>
+</div>
+
+</div><!-- content -->
+
+<script>
+const CORRECT_HASH = '7f537aa649283f3f57198a6b478341c9ab6fdaf5';
+
+async function tryUnlock() {
+  const pwd = document.getElementById('pwd').value;
+  if (pwd.length < 1) return;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pwd);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  if (hashHex === CORRECT_HASH) {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } else {
+    document.getElementById('err').style.display = 'block';
+    document.getElementById('pwd').value = '';
+    setTimeout(() => document.getElementById('err').style.display = 'none', 2000);
+  }
+}
+
+document.getElementById('unlock-btn').addEventListener('click', tryUnlock);
+document.getElementById('pwd').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') tryUnlock();
+});
+
+window.addEventListener('scroll', function() {
+  const btn = document.getElementById('back-top');
+  if (btn) btn.style.display = window.scrollY > 400 ? 'block' : 'none';
+});
+</script>
+
+</body>
+</html>
